@@ -1,41 +1,84 @@
-import tkinter as tk
-from tkinter import messagebox
+import streamlit as st
 
-def check_winner():
-    global winner
-    for combo in [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]]:
-        if buttons[combo[0]]["text"] == buttons[combo[1]]["text"] == buttons[combo[2]]["text"] != "":
-            buttons[combo[0]].config(bg="green")
-            buttons[combo[1]].config(bg="green")
-            buttons[combo[2]].config(bg="green")
-            messagebox.showinfo("Tic-Tac-Toe", f"Player {buttons[combo[0]]['text']} wins!")
-            winner = True
-            root.quit()
+# Initialize the board state in session state if it doesn't exist
+if 'board' not in st.session_state:
+    st.session_state.board = ["" for _ in range(9)]
+    st.session_state.current_player = "X"
+    st.session_state.winner = None
+    st.session_state.game_over = False
 
-def button_click(index):
-    global current_player, winner
-    if buttons[index]["text"] == "" and not winner:
-        buttons[index]["text"] = current_player
-        check_winner()
-        if not winner:
-            toggle_player()
+# Check for winner
+def check_winner(board):
+    winning_combos = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # columns
+        [0, 4, 8], [2, 4, 6]              # diagonals
+    ]
+    
+    for combo in winning_combos:
+        if board[combo[0]] == board[combo[1]] == board[combo[2]] != "":
+            return board[combo[0]]
+    
+    if "" not in board:
+        return "Tie"
+    return None
 
-def toggle_player():
-    global current_player
-    current_player = "X" if current_player == "O" else "O"
-    label.config(text=f"Player {current_player}'s turn")
+# Handle button click
+def handle_click(index):
+    if st.session_state.board[index] == "" and not st.session_state.game_over:
+        st.session_state.board[index] = st.session_state.current_player
+        
+        # Check for winner
+        winner = check_winner(st.session_state.board)
+        if winner:
+            if winner == "Tie":
+                st.session_state.winner = "It's a tie!"
+            else:
+                st.session_state.winner = f"Player {winner} wins!"
+            st.session_state.game_over = True
+        else:
+            # Switch player
+            st.session_state.current_player = "O" if st.session_state.current_player == "X" else "X"
 
-root = tk.Tk()
-root.title("Tic-Tac-Toe")
+# Reset game
+def reset_game():
+    st.session_state.board = ["" for _ in range(9)]
+    st.session_state.current_player = "X"
+    st.session_state.winner = None
+    st.session_state.game_over = False
 
-buttons = [tk.Button(root, text="", font=("normal", 25), width=6, height=2, command=lambda i=i: button_click(i)) for i in range(9)]
+# App title
+st.title("Tic-Tac-Toe")
 
-for i, button in enumerate(buttons):
-    button.grid(row=i // 3, column=i % 3)
+# Display game status
+if st.session_state.winner:
+    st.header(st.session_state.winner)
+else:
+    st.header(f"Player {st.session_state.current_player}'s turn")
 
-current_player = "X"
-winner = False
-label = tk.Label(root, text=f"Player {current_player}'s turn", font=("normal", 16))
-label.grid(row=3, column=0, columnspan=3)
+# Create the 3x3 grid using columns
+for row in range(3):
+    cols = st.columns(3)
+    for col in range(3):
+        index = row * 3 + col
+        with cols[col]:
+            if st.session_state.board[index] == "X":
+                button_color = "blue"
+            elif st.session_state.board[index] == "O":
+                button_color = "red"
+            else:
+                button_color = "gray"
+                
+            st.button(
+                st.session_state.board[index] if st.session_state.board[index] else " ", 
+                key=f"btn_{index}",
+                on_click=handle_click,
+                args=(index,),
+                use_container_width=True,
+                help=f"Position {index}",
+                type="primary" if st.session_state.board[index] else "secondary"
+            )
 
-root.mainloop()
+# Reset button
+if st.button("Reset Game", type="primary"):
+    reset_game()
