@@ -1,4 +1,22 @@
+
 import streamlit as st
+
+# Custom CSS to style the buttons
+st.markdown("""
+    <style>
+    .stButton>button {
+        height: 100px !important;
+        width: 100px !important;
+        font-size: 24px !important;
+        border-radius: 10px !important;
+        margin: 5px !important;
+    }
+    .stButton>button:disabled {
+        opacity: 1 !important;
+        color: white !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 # Initialize the board state in session state if it doesn't exist
 if 'board' not in st.session_state:
@@ -62,18 +80,16 @@ for row in range(3):
     for col in range(3):
         index = row * 3 + col
         with cols[col]:
-            if st.session_state.board[index] == "X":
-                button_color = "blue"
-            elif st.session_state.board[index] == "O":
-                button_color = "red"
-            else:
-                button_color = "gray"
-                
+            button_label = st.session_state.board[index] if st.session_state.board[index] else " "
+            button_disabled = st.session_state.board[index] != "" or st.session_state.game_over
+            button_color = "blue" if st.session_state.board[index] == "X" else "red" if st.session_state.board[index] == "O" else "gray"
+            
             st.button(
-                st.session_state.board[index] if st.session_state.board[index] else " ", 
+                button_label, 
                 key=f"btn_{index}",
                 on_click=handle_click,
                 args=(index,),
+                disabled=button_disabled,
                 use_container_width=True,
                 help=f"Position {index}",
                 type="primary" if st.session_state.board[index] else "secondary"
